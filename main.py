@@ -1,93 +1,76 @@
-import pygame
-import random
-import time
+from env import *
+from tqdm import tqdm
 
-import numpy as np
+#
+#
+# # def check_end_game():
+# #     for key, item in game_dict.items():
+# #         if item['direction'] != 1:
+# #             return True
+# #
+# #     return False
+#
+#
+# env = CustomEnv()
+# env.init_render()
+# done = False
+#
+# for episode in range(100):
+#     env.clock.tick(30)
+#
+#     env.render()
+#
+#     #
+#     # for event in pygame.event.get():
+#     #     if event.type == pygame.QUIT:
+#     #         done = True
+#         # if event.type == pygame.MOUSEBUTTONDOWN:
+#         #     if pygame.mouse.get_pressed(3) == (1, 0, 0):
+#                 # timer_started = True
+#                 # if timer_started:
+#                 #     start_time = pygame.time.get_ticks()
+#     action = env.action_space.sample()
+#     obs, reward, done, _ = env.step(action)
+#
+# # print("Score final : ", str(passed_time / 1000))
+#
+# pygame.quit()
 
-img_up = pygame.image.load("up.png")
-img_down = pygame.image.load("down.png")
-img_left = pygame.image.load("left.png")
-img_right = pygame.image.load("right.png")
+# 1. Load Environment and Q-table structure
+env = CustomEnv()
+env.init_render()
+Q = np.zeros([env.observation_space.shape[0], env.action_space.n])
+print(Q.shape)
+# 2. Parameters of Q-learning
+eta = .628
+gma = .9
+epis = 5000
+rev_list = []  # rewards per episode calculate
+# 3. Q-learning Algorithm
+for i in tqdm(range(epis)):
+    # Reset environment
+    s = env.reset()
+    rAll = 0
+    d = False
+    j = 0
+    # The Q-Table learning algorithm
+    while j < 99:
+        # env.render()
+        j += 1
+        # Choose action from Q table
+        a = np.argmax(Q[s, :] + np.random.randn(1, env.action_space.n) * (1. / (i + 1)))
+        a = np.clip(a, 0, 15)
+        # Get new state & reward from environment
+        s1, r, d, _ = env.step(a)
+        # Update Q-Table with new knowledge
+        Q[s, a] = Q[s, a] + eta * (r + gma * np.max(Q[s1, :]) - Q[s, a])
+        rAll += r
+        s = s1
+        if d == True:
+            break
+    rev_list.append(rAll)
+    # env.render()
+print("Reward Sum on all episodes " + str(sum(rev_list) / epis))
+print("Final Values Q-Table")
+print(Q)
 
-direction_dict = {1: img_up,
-                  2: img_right,
-                  3: img_down,
-                  4: img_left}
-
-
-def create_game(surf):
-    game_dict = {}
-    surf.fill((0, 0, 0))
-
-    for i in range(4):
-        for j in range(4):
-            choice = random.choice(list(direction_dict.keys()))
-            surf.blit(direction_dict[choice], (i * 135 + (i * 5), j * 135 + (j * 5) + 200))
-            game_dict[(i, j)] = {'pos_x': i * 135 + (i * 5),
-                                 'pos_y': j * 135 + (j * 5) + 200,
-                                 'direction': choice}
-
-            pygame.display.flip()
-
-    return game_dict
-
-
-def flip_arrow(pos):
-    pos_i = pos[0] // 135
-    pos_j = (pos[1] - 200) // 135
-
-    for i in range(pos_i - 1, pos_i + 2):
-        for j in range(pos_j - 1, pos_j + 2):
-            if (i, j) in game_dict.keys():
-                game_dict[(i, j)]['direction'] = game_dict[(i, j)]['direction'] % 4 + 1
-                surf.blit(direction_dict[game_dict[(i, j)]['direction']],
-                          (game_dict[(i, j)]['pos_x'], game_dict[(i, j)]['pos_y']))
-
-    pygame.display.flip()
-
-
-def check_end_game():
-    for key, item in game_dict.items():
-        if item['direction'] != 1:
-            return True
-
-    return False
-
-
-pygame.init()
-surf = pygame.display.set_mode((555, 755))
-run = True
-game_dict = create_game(surf)
-clock = pygame.time.Clock()
-font = pygame.font.Font(None, 54)
-font_color = pygame.Color('springgreen')
-passed_time = 0
-timer_started = False
-
-while run:
-    for event in pygame.event.get():
-        if event.type == pygame.QUIT:
-            run = False
-        if event.type == pygame.MOUSEBUTTONDOWN:
-            if pygame.mouse.get_pressed(3) == (1, 0, 0):
-                timer_started = True
-                if timer_started:
-                    start_time = pygame.time.get_ticks()
-
-                pos = pygame.mouse.get_pos()
-                color = surf.get_at(pos)[:3]
-                if color != (0, 0, 0):
-                    flip_arrow(pos)
-                    run = check_end_game()
-    if timer_started:
-        passed_time = pygame.time.get_ticks() - start_time
-
-    pygame.draw.rect(surf, (0, 0, 0), pygame.Rect(0, 0, 555, 200))
-    text = font.render(str(passed_time / 1000), True, font_color)
-    surf.blit(text, (50, 50))
-    pygame.display.flip()
-    clock.tick(30)
-
-print("Score final : ", str(passed_time / 1000))
-
-pygame.quit()
