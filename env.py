@@ -23,8 +23,12 @@ class CustomEnv(gym.Env):
                                             dtype=np.uint8)  # observation like [2, 1, 2, 3, 1, 3, ..., 1, 3, 3, 1]
         self.action_space = spaces.Discrete(self.grid_size)  # action 0 to 15
 
+        self.init_render()
+
+        self.n_steps = 0
+        self.max_n_steps = 1000
+
     def init_render(self):
-        import pygame
         pygame.init()
         self.window = pygame.display.set_mode((555, 755))
         self.clock = pygame.time.Clock()
@@ -41,6 +45,7 @@ class CustomEnv(gym.Env):
                 pygame.display.update()
 
     def reset(self):
+        self.n_steps = 0
 
         for i in range(4):
             for j in range(4):
@@ -52,7 +57,7 @@ class CustomEnv(gym.Env):
                 self.window.blit(self.direction_dict[self.game_dict[(i, j)]['direction']],
                                  (self.game_dict[(i, j)]['pos_x'], self.game_dict[(i, j)]['pos_y']))
 
-        observation = [self.game_dict[i]['direction'] for i in self.game_dict]
+        observation = np.array([self.game_dict[i]['direction'] for i in self.game_dict], dtype=np.uint8)
         return observation
 
     def step(self, action=0):
@@ -65,10 +70,15 @@ class CustomEnv(gym.Env):
                 if (i, j) in self.game_dict.keys():
                     self.game_dict[(i, j)]['direction'] = self.game_dict[(i, j)]['direction'] % 4 + 1
 
-        observation = [self.game_dict[i]['direction'] for i in self.game_dict]
-        reward = observation.count(1)
+        self.n_steps += 1
+
+        observation = np.array([self.game_dict[i]['direction'] for i in self.game_dict], dtype=np.uint8)
+        reward = 2 ^ int(np.count_nonzero(observation == 1))
 
         done = sum(observation) == self.grid_size
+        if self.n_steps == self.max_n_steps - 1:
+            done = True
+            reward -= 20
         info = {}
         return observation, reward, done, info
 
