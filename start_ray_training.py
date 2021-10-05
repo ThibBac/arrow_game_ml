@@ -24,6 +24,6 @@ tune.run(
         }
     },
     stop={
-        "timesteps_total": 5_000_000,
+        "timesteps_total": 50_000,
     },
 )
